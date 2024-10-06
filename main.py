@@ -4,6 +4,30 @@ import matplotlib.pyplot as plt
 from numba import njit, prange
 from time import time 
 
+NOFD_x: int
+NOFD_y: int
+X_MIN: np.float64 
+X_MAX: np.float64
+Y_MIN: np.float64
+Y_MAX: np.float64
+DT: np.float64
+H_X: np.float64
+H_Y: np.float64
+
+def apply_parameters(number_of_dots_x, number_of_dots_y, x_min, x_max, y_min, y_max, dt):
+    global NOFD_x, NOFD_y, X_MIN, X_MAX, Y_MIN, Y_MAX, DT, H_X, H_Y
+    NOFD_x, NOFD_y, DT = number_of_dots_x, number_of_dots_y, dt
+    X_MIN, X_MAX = x_min, x_max 
+    Y_MIN, Y_MAX = y_min, y_max
+
+    x = np.linspace(x_min, x_max, number_of_dots_x)
+    y = np.linspace(y_min, y_max, number_of_dots_y)
+    X, Y = np.meshgrid(x, y)
+
+    H_X = (x_max - x_min)/(number_of_dots_x - 1)
+    H_Y = (y_max - y_min)/(number_of_dots_y - 1)
+    return X, Y 
+
 def make_imaginary_condition(condition: npt.ArrayLike) -> npt.ArrayLike: 
     new_shape = np.array(condition.shape) + np.array([2,2,0])
     imc = np.zeros(shape = new_shape, dtype = np.float64)
@@ -312,20 +336,19 @@ def timestep(params_1_1: npt.ArrayLike,
         
     E_n1_1 = Params_n1_1[3]/(Params_n1_1[2]*(Params_n1_1[4] - 1.0))
     E_n2_1 = Params_n2_1[3]/(Params_n2_1[2]*(Params_n2_1[4] - 1.0))
-    E_1_m1 = Params_1_m1[3]/(Params_1_m1[2]*(Params_1_m1[4] - 1))
-    E_1_m2 = Params_1_m2[3]/(Params_1_m2[2]*(Params_1_m2[4] - 1))
+    E_1_m1 = Params_1_m1[3]/(Params_1_m1[2]*(Params_1_m1[4] - 1.0))
+    E_1_m2 = Params_1_m2[3]/(Params_1_m2[2]*(Params_1_m2[4] - 1.0))
     e_down_1_1 = params_1_1[3]/(params_1_1[2]*(params_1_1[4] - 1.0))
 
-    rho_up_1_1 = params_1_1[2] - dt*((Params_n2_1[2]*Params_n2_1[0]) - (Params_n1_1[2]*Params_n1_1[0])) / h_x - dt*((Params_1_m2[2]*Params_1_m2[1]) - (Params_1_m1[2]*Params_1_m1[1])) / h_y
-        # rho_up_1_1 = np.abs(params_1_1[2] - self.dt*((Params_n2_1[2]*Params_n2_1[0]) - (Params_n1_1[2]*Params_n1_1[0])) / self.h_x - self.dt*((Params_1_m2[2]*Params_1_m2[1]) - (Params_1_m1[2]*Params_1_m1[1])) / self.h_y)
-    u_up_1_1 = (params_1_1[2]*params_1_1[0] - dt*((Params_n2_1[3] + Params_n2_1[2]*np.power(Params_n2_1[0], 2)) - (Params_n1_1[3] + Params_n1_1[2]*np.power(Params_n1_1[0], 2))) / h_x - 
-                    dt*((Params_1_m2[2]*Params_1_m2[0]*Params_1_m2[1]) - (Params_1_m1[2]*Params_1_m1[0]*Params_1_m1[1])) / h_y) / rho_up_1_1
-    v_up_1_1 = (params_1_1[2]*params_1_1[1] - dt*((Params_n2_1[2]*Params_n2_1[0]*Params_n2_1[1]) - (Params_n1_1[2]*Params_n1_1[0]*Params_n1_1[1])) / h_x - dt*((Params_1_m2[3] + Params_1_m2[2]*np.power(Params_1_m2[1], 2)) - (Params_1_m1[3] + Params_1_m1[2]*np.power(Params_1_m1[1], 2)))/h_y) / rho_up_1_1  
+    rho_up_1_1 = params_1_1[2] - DT*((Params_n2_1[2]*Params_n2_1[0]) - (Params_n1_1[2]*Params_n1_1[0])) / H_X - DT*((Params_1_m2[2]*Params_1_m2[1]) - (Params_1_m1[2]*Params_1_m1[1])) / H_Y
+    u_up_1_1 = (params_1_1[2]*params_1_1[0] - DT*((Params_n2_1[3] + Params_n2_1[2]*np.power(Params_n2_1[0], 2)) - (Params_n1_1[3] + Params_n1_1[2]*np.power(Params_n1_1[0], 2))) / H_X - 
+                    DT*((Params_1_m2[2]*Params_1_m2[0]*Params_1_m2[1]) - (Params_1_m1[2]*Params_1_m1[0]*Params_1_m1[1])) / H_Y) / rho_up_1_1
+    v_up_1_1 = (params_1_1[2]*params_1_1[1] - DT*((Params_n2_1[2]*Params_n2_1[0]*Params_n2_1[1]) - (Params_n1_1[2]*Params_n1_1[0]*Params_n1_1[1])) / H_X - DT*((Params_1_m2[3] + Params_1_m2[2]*np.power(Params_1_m2[1], 2)) - (Params_1_m1[3] + Params_1_m1[2]*np.power(Params_1_m1[1], 2)))/H_Y) / rho_up_1_1  
     e_up_1_1 = (params_1_1[2]*(e_down_1_1 + (np.power(params_1_1[0], 2) + np.power(params_1_1[1], 2)) / 2.0) - 
-                    dt*(Params_n2_1[2]*Params_n2_1[0]*(E_n2_1 + Params_n2_1[3]/Params_n2_1[2] + (np.power(Params_n2_1[0], 2) + np.power(Params_n2_1[1], 2)) / 2.0) -
-                        Params_n1_1[2]*Params_n1_1[0]*(E_n1_1 + Params_n1_1[3]/Params_n1_1[2] + (np.power(Params_n1_1[0],2) + np.power(Params_n1_1[1],2)) / 2.0))/h_x - 
-                        dt*(Params_1_m2[2]*Params_1_m2[1]*(E_1_m2 + Params_1_m2[3]/Params_1_m2[2] + (np.power(Params_1_m2[0], 2) + np.power(Params_1_m2[1],2)) / 2.0) - 
-                            Params_1_m1[2]*Params_1_m1[1]*(E_1_m1 + Params_1_m1[3]/Params_1_m1[2] + (np.power(Params_1_m1[0], 2) + np.power(Params_1_m1[1],2)) / 2.0)) / h_y ) / rho_up_1_1 - (np.power(u_up_1_1, 2) + np.power(v_up_1_1, 2)) / 2.0
+                    DT*(Params_n2_1[2]*Params_n2_1[0]*(E_n2_1 + Params_n2_1[3]/Params_n2_1[2] + (np.power(Params_n2_1[0], 2) + np.power(Params_n2_1[1], 2)) / 2.0) -
+                        Params_n1_1[2]*Params_n1_1[0]*(E_n1_1 + Params_n1_1[3]/Params_n1_1[2] + (np.power(Params_n1_1[0],2) + np.power(Params_n1_1[1],2)) / 2.0))/H_X - 
+                        DT*(Params_1_m2[2]*Params_1_m2[1]*(E_1_m2 + Params_1_m2[3]/Params_1_m2[2] + (np.power(Params_1_m2[0], 2) + np.power(Params_1_m2[1],2)) / 2.0) - 
+                            Params_1_m1[2]*Params_1_m1[1]*(E_1_m1 + Params_1_m1[3]/Params_1_m1[2] + (np.power(Params_1_m1[0], 2) + np.power(Params_1_m1[1],2)) / 2.0)) / H_Y ) / rho_up_1_1 - (np.power(u_up_1_1, 2) + np.power(v_up_1_1, 2)) / 2.0
         
     p_up_1_1 = (params_1_1[4] - 1)*e_up_1_1*rho_up_1_1
     return np.array([u_up_1_1, v_up_1_1, rho_up_1_1, p_up_1_1, params_1_1[4]], dtype = np.float64)  
@@ -333,21 +356,21 @@ def timestep(params_1_1: npt.ArrayLike,
 @njit(parallel = True)
 def full_time_step(imc):
     #solving riemann problem on edges
-    parametres_on_edges_x = np.empty(shape = (number_of_dots_y - 1, number_of_dots_x, 5), dtype = np.float64)
+    parametres_on_edges_x = np.empty(shape = (NOFD_y - 1, NOFD_x, 5), dtype = np.float64)
 
-    for i in prange(number_of_dots_y - 1):
-        for j in range(number_of_dots_x):
+    for i in prange(NOFD_y - 1):
+        for j in range(NOFD_x):
             parametres_on_edges_x[i,j] = riemprob_for_border_x(imc[i+1, j, 0], imc[i+1, j, 1], imc[i+1, j, 2], imc[i+1, j, 3], imc[i+1, j, 4], 
                                                                imc[i+1, j+1, 0], imc[i+1, j+1, 1], imc[i+1, j+1, 2], imc[i+1, j+1, 3], imc[i+1, j+1, 4])
 
-    parametres_on_edges_y = np.empty(shape = (number_of_dots_y, number_of_dots_x - 1, 5), dtype = np.float64)
+    parametres_on_edges_y = np.empty(shape = (NOFD_y, NOFD_x - 1, 5), dtype = np.float64)
 
-    for i in prange(number_of_dots_y):
-        for j in range(number_of_dots_x - 1):
+    for i in prange(NOFD_y):
+        for j in range(NOFD_x - 1):
             parametres_on_edges_y[i,j] = riemprob_for_border_y(imc[i, j+1, 0], imc[i, j+1, 1], imc[i, j+1, 2], imc[i, j+1, 3], imc[i, j+1, 4],
                                                                imc[i+1, j+1, 0], imc[i+1, j+1, 1],imc[i+1, j+1, 2],imc[i+1, j+1, 3], imc[i+1, j+1, 4])
 
     #gas-dynamic step 
-    for i in prange(number_of_dots_y - 1):
-        for j in range(number_of_dots_x - 1):
+    for i in prange(NOFD_y - 1):
+        for j in range(NOFD_x - 1):
             imc[i+1, j+1] = timestep(imc[i+1, j+1], parametres_on_edges_x[i, j], parametres_on_edges_x[i, j + 1], parametres_on_edges_y[i, j], parametres_on_edges_y[i+1, j]) 
