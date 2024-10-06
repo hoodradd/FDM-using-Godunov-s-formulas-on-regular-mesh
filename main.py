@@ -329,3 +329,25 @@ def timestep(params_1_1: npt.ArrayLike,
         
     p_up_1_1 = (params_1_1[4] - 1)*e_up_1_1*rho_up_1_1
     return np.array([u_up_1_1, v_up_1_1, rho_up_1_1, p_up_1_1, params_1_1[4]], dtype = np.float64)  
+
+@njit(parallel = True)
+def full_time_step(imc):
+    #solving riemann problem on edges
+    parametres_on_edges_x = np.empty(shape = (number_of_dots_y - 1, number_of_dots_x, 5), dtype = np.float64)
+
+    for i in prange(number_of_dots_y - 1):
+        for j in range(number_of_dots_x):
+            parametres_on_edges_x[i,j] = riemprob_for_border_x(imc[i+1, j, 0], imc[i+1, j, 1], imc[i+1, j, 2], imc[i+1, j, 3], imc[i+1, j, 4], 
+                                                               imc[i+1, j+1, 0], imc[i+1, j+1, 1], imc[i+1, j+1, 2], imc[i+1, j+1, 3], imc[i+1, j+1, 4])
+
+    parametres_on_edges_y = np.empty(shape = (number_of_dots_y, number_of_dots_x - 1, 5), dtype = np.float64)
+
+    for i in prange(number_of_dots_y):
+        for j in range(number_of_dots_x - 1):
+            parametres_on_edges_y[i,j] = riemprob_for_border_y(imc[i, j+1, 0], imc[i, j+1, 1], imc[i, j+1, 2], imc[i, j+1, 3], imc[i, j+1, 4],
+                                                               imc[i+1, j+1, 0], imc[i+1, j+1, 1],imc[i+1, j+1, 2],imc[i+1, j+1, 3], imc[i+1, j+1, 4])
+
+    #gas-dynamic step 
+    for i in prange(number_of_dots_y - 1):
+        for j in range(number_of_dots_x - 1):
+            imc[i+1, j+1] = timestep(imc[i+1, j+1], parametres_on_edges_x[i, j], parametres_on_edges_x[i, j + 1], parametres_on_edges_y[i, j], parametres_on_edges_y[i+1, j]) 
